@@ -20,7 +20,7 @@ module "mini_ad" {
 
   # Ensure NAT + route association exist before bootstrapping (for package repos, etc.)
   depends_on = [
-    aws_nat_gateway.eks_nat,
+    aws_nat_gateway.ecs_nat,
     aws_route_table_association.rt_assoc_ad_private
   ]
 }
