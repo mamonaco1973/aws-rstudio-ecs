@@ -21,7 +21,7 @@
 resource "aws_security_group" "ad_rdp_sg" {
   name        = "ad-rdp-security-group"              # Security group name
   description = "Allow RDP access from the internet" # Purpose
-  vpc_id      = data.aws_vpc.eks_vpc.id              # Target VPC
+  vpc_id      = data.aws_vpc.ecs_vpc.id              # Target VPC
 
   # Ingress: RDP access (port 3389)
   ingress {
@@ -59,7 +59,7 @@ resource "aws_security_group" "ad_rdp_sg" {
 resource "aws_security_group" "ad_ssh_sg" {
   name        = "ad-ssh-security-group"              # Security group name
   description = "Allow SSH access from the internet" # Purpose
-  vpc_id      = data.aws_vpc.eks_vpc.id              # Target VPC
+  vpc_id      = data.aws_vpc.ecs_vpc.id              # Target VPC
 
   # Ingress: SSH access (port 22)
   ingress {

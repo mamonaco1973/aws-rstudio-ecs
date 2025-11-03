@@ -13,7 +13,7 @@
 resource "aws_security_group" "efs_sg" {
   name        = "efs-sg"
   description = "Security group allowing NFS traffic to EFS"
-  vpc_id      = data.aws_vpc.eks_vpc.id
+  vpc_id      = data.aws_vpc.ecs_vpc.id
 
   ingress {
     description = "Allow inbound NFS traffic"
