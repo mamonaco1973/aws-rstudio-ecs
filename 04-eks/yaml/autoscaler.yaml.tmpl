@@ -1,0 +1,37 @@
+# ==============================================================================
+# Cluster Autoscaler Configuration (values.yaml override)
+# ------------------------------------------------------------------------------
+# Used with Helm to deploy the AWS Cluster Autoscaler.
+# This configuration disables node scale-down completely while still allowing
+# automatic scale-up when new pods cannot be scheduled due to resource limits.
+# ==============================================================================
+autoDiscovery:
+  clusterName: ${cluster_name}  # Dynamically injects the EKS cluster name
+                                # Enables auto-discovery of Auto Scaling Groups
+                                # (ASGs) based on AWS EC2 tags tied to this cluster
+
+awsRegion: us-east-1            # AWS region of EKS control plane and ASGs
+                                # Must match your cluster and node group region
+
+rbac:
+  serviceAccount:
+    create: false               # Reuse existing ServiceAccount for IRSA
+    name: cluster-autoscaler    # Must have IAM policy allowing ASG management
+
+extraArgs:
+  # --- General scaling behavior ----------------------------------------------
+  balance-similar-node-groups: "true"          # Distribute pods evenly
+  skip-nodes-with-system-pods: "false"         # Allow scale actions even if
+                                               # system pods exist on the node
+  expander: least-waste                        # Prefer least wasteful ASG
+  node-group-auto-discovery: >
+    asg:tag=k8s.io/cluster-autoscaler/enabled,
+    k8s.io/cluster-autoscaler/${cluster_name}
+
+  # --- Scale-down behavior (disabled) ----------------------------------------
+  scale-down-enabled: "false"                  # Disable scale-down completely
+  scale-down-unneeded-time: "10m"              # Ignored when disabled
+  scale-down-delay-after-delete: "10m"         # Ignored when disabled
+  scale-down-delay-after-failure: "10m"        # Ignored when disabled
+  scale-down-utilization-threshold: "0.5"      # Ignored when disabled
+  scale-down-delay-after-add: "10m"            # Ignored when disabled
