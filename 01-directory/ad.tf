@@ -10,7 +10,7 @@
 module "mini_ad" {
   source            = "github.com/mamonaco1973/module-aws-mini-ad" # GitHub repo source
   netbios           = var.netbios                                  # NetBIOS domain name (e.g., MCLOUD)
-  vpc_id            = aws_vpc.eks-vpc.id                           # VPC where the AD will reside
+  vpc_id            = aws_vpc.ecs-vpc.id                           # VPC where the AD will reside
   realm             = var.realm                                    # Kerberos realm (usually UPPERCASE DNS domain)
   users_json        = local.users_json                             # JSON blob of users and passwords (built below)
   user_base_dn      = var.user_base_dn                             # Base DN for user accounts in LDAP

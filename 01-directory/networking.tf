@@ -108,10 +108,10 @@ resource "aws_eip" "nat_eip" {
 # NAT Gateway
 # - Placed in public subnet; provides outbound internet to private subnets
 # ------------------------------------------------------------------------------------------
-resource "aws_nat_gateway" "eks_nat" {
+resource "aws_nat_gateway" "ecs_nat" {
   subnet_id     = aws_subnet.pub-subnet-1.id
   allocation_id = aws_eip.nat_eip.id
-  tags          = { Name = "eks-nat" }
+  tags          = { Name = "ecs-nat" }
 }
 
 
