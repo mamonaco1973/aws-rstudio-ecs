@@ -73,10 +73,10 @@ data "aws_subnet" "ad_subnet" {
 # VPC Lookup
 # - Retrieves AD-specific VPC by Name tag
 # ------------------------------------------------------------------------------------------
-data "aws_vpc" "eks_vpc" {
+data "aws_vpc" "ecs_vpc" {
   filter {
     name   = "tag:Name"
-    values = ["eks-vpc"]
+    values = ["ecs-vpc"]
   }
 }
 

@@ -7,13 +7,12 @@
 #     1. Active Directory domain controller
 #     2. EC2 servers joined to the domain
 #     3. RStudio Docker image build and ECR push
-#     4. EKS cluster deployment and kubeconfig update
+#     4. ECS cluster deployment
 #
 # Requirements:
 #   - AWS CLI v2, Terraform, Docker, jq installed
 #   - AWS credentials with required permissions
 #
-# Author: [Your Name]
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
@@ -130,60 +129,43 @@ fi
 cd ../.. || exit
 
 # ------------------------------------------------------------------------------
-# Phase 4: Build EKS Cluster
+# Phase 4: Build ECS Cluster
 # ------------------------------------------------------------------------------
-# Deploys the EKS cluster via Terraform and updates kubeconfig for kubectl use.
-echo "NOTE: Building EKS cluster..."
+echo "NOTE: Building ECS cluster..."
 
-cd 04-eks || { echo "ERROR: 04-eks directory missing."; exit 1; }
+cd 04-ecs || { echo "ERROR: 04-ecs directory missing."; exit 1; }
 
 terraform init
 terraform apply -auto-approve
 
-# Prepare Kubernetes YAML Manifests
+# # Prepare Kubernetes YAML Manifests
 
-# Export environment variables
-export rstudio_image="${IMAGE_TAG}"
-export domain_fqdn="rstudio.mikecloud.com"
-export admin_secret="admin_ad_credentials"
-export efs_id=$(aws efs describe-file-systems \
-  --query "FileSystems[?Tags[?Key=='Name' && Value=='mcloud-efs']].FileSystemId" \
-  --output text)
+# # Export environment variables
+# export rstudio_image="${IMAGE_TAG}"
+# export domain_fqdn="rstudio.mikecloud.com"
+# export admin_secret="admin_ad_credentials"
+# export efs_id=$(aws efs describe-file-systems \
+#   --query "FileSystems[?Tags[?Key=='Name' && Value=='mcloud-efs']].FileSystemId" \
+#   --output text)
 
-#echo "EFS_ID=${efs_id}"
+# #echo "EFS_ID=${efs_id}"
 
-# Render template with environment substitution
+# # Render template with environment substitution
 
-envsubst < yaml/rstudio-app.yaml.tmpl > ../rstudio-app.yaml || {
-    echo "ERROR: Failed to generate Kubernetes deployment file. Exiting."
-    exit 1
-}
+# envsubst < yaml/rstudio-app.yaml.tmpl > ../rstudio-app.yaml || {
+#     echo "ERROR: Failed to generate Kubernetes deployment file. Exiting."
+#     exit 1
+# }
 
 cd .. || exit
 
 # ------------------------------------------------------------------------------
-# Phase 5: Update kubeconfig and deploy rstudio yaml
-# -----------------------------------------------------------------------------
-
-# Update kubeconfig to connect kubectl to the EKS cluster
-aws eks update-kubeconfig --name rstudio-cluster \
-  --region ${AWS_DEFAULT_REGION} || {
-  echo "ERROR: kubeconfig update failed. Exiting."
-  exit 1
-}
-
-kubectl apply -f rstudio-app.yaml || {
-  echo "ERROR: Failed to apply rstudio-app.yaml. Exiting."
-  exit 1
-}
-
-# ------------------------------------------------------------------------------
-# Phase 6: Build Validation
+# Phase 5: Build Validation
 # ------------------------------------------------------------------------------
 # Runs post-deployment checks for DNS, domain join, and instance health.
 echo "NOTE: Running build validation..."
 
-./validate.sh  # Uncomment once validation script is implemented
+#./validate.sh  # Uncomment once validation script is implemented
 
 # ==============================================================================
 # End of Script

@@ -3,16 +3,6 @@
 # ------------------------------------------------------------------------------
 # Defines required providers, AWS region, and basic identity data sources.
 # ==============================================================================
-
-terraform {
-  required_providers {
-    helm = {
-      source  = "hashicorp/helm" # Use the official HashiCorp Helm provider
-      version = ">= 2.10.0"      # Require Helm provider version 2.10.0 or newer
-    }
-  }
-}
-
 # ------------------------------------------------------------------------------
 # AWS Provider Configuration
 # ------------------------------------------------------------------------------

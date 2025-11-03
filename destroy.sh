@@ -12,7 +12,6 @@
 #   - AWS CLI v2 and Terraform installed
 #   - AWS credentials with required permissions
 #
-# Author: [Your Name]
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
@@ -22,44 +21,14 @@ export AWS_DEFAULT_REGION="us-east-1"  # AWS region for all deployed resources
 set -euo pipefail                      # Exit on error, unset var, or pipe fail
 
 # ------------------------------------------------------------------------------
-# Destroy EKS Cluster
+# Destroy ECS Cluster
 # ------------------------------------------------------------------------------
-echo "NOTE: Destroying EKS cluster..."
+echo "NOTE: Destroying ECS cluster..."
 
-kubectl delete -f rstudio-app.yaml || echo "WARNING: Delete failed, continuing..."
-
-cd 04-eks || { echo "ERROR: Directory 04-eks not found."; exit 1; }
+cd 04-ecs || { echo "ERROR: Directory 04-ecs not found."; exit 1; }
 terraform init
-#echo "NOTE: Deleting nginx_ingress..."
-#terraform destroy -target=helm_release.nginx_ingress \
-#  -auto-approve > /dev/null 2> /dev/null
 terraform destroy -auto-approve
 cd .. || exit
-
-# ------------------------------------------------------------------------------
-# Delete Orphaned Security Groups Named "k8s*"
-# ------------------------------------------------------------------------------
-# AWS sometimes leaves dangling security groups after EKS deletion.
-# This section detects and deletes them.
-# ------------------------------------------------------------------------------
-group_ids=$(aws ec2 describe-security-groups \
-  --query "SecurityGroups[?starts_with(GroupName, 'k8s')].GroupId" \
-  --output text)
-
-if [ -z "$group_ids" ]; then
-  echo "NOTE: No security groups starting with 'k8s' found."
-fi
-
-for group_id in $group_ids; do
-  echo "NOTE: Deleting security group: $group_id"
-  aws ec2 delete-security-group --group-id "$group_id"
-
-  if [ $? -eq 0 ]; then
-    echo "NOTE: Successfully deleted $group_id"
-  else
-    echo "WARN: Failed to delete $group_id — possibly in use elsewhere"
-  fi
-done
 
 # ------------------------------------------------------------------------------
 # Destroy EC2 Server Instances

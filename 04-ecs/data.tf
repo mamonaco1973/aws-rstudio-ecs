@@ -5,11 +5,11 @@
 # already exist in the target AWS account and region. This avoids hardcoding
 # VPC IDs and allows dynamic referencing by tag.
 # ==============================================================================
-data "aws_vpc" "k8s-vpc" {
+data "aws_vpc" "ecs-vpc" {
   # FILTER: Select VPC by tag
   filter {
     name   = "tag:Name"  # Filter by the "Name" tag
-    values = ["eks-vpc"] # Match the VPC name tag value
+    values = ["ecs-vpc"] # Match the VPC name tag value
   }
 }
 
