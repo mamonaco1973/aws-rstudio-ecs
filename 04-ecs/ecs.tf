@@ -28,11 +28,18 @@ resource "aws_launch_template" "ecs_lt" {
     cluster_name = aws_ecs_cluster.rstudio_cluster.name
   }))
 
-   tags = {
-      Name               = "rstudio-ecs-node"
-      Cluster            = aws_ecs_cluster.rstudio_cluster.name
-      Environment        = "dev"
+  # THIS is what applies tags to the EC2 instances
+  tag_specifications {
+    resource_type = "instance"
+    tags = {
+      Name        = "rstudio-ecs-node"
+      Cluster     = aws_ecs_cluster.rstudio_cluster.name
+      Environment = "dev"
     }
+  }
+
+  # optional: tags on the template object itself
+  tags = { Name = "rstudio-ecs-lt" }
 }
 
 resource "aws_autoscaling_group" "ecs_asg" {
