@@ -35,6 +35,7 @@ resource "aws_launch_template" "ecs_lt" {
       Name        = "rstudio-ecs-node"
       Cluster     = aws_ecs_cluster.rstudio_cluster.name
       Environment = "dev"
+      AmazonECSManaged      = "true"  
     }
   }
 
@@ -100,7 +101,7 @@ resource "aws_ecs_task_definition" "rstudio_task" {
       image     = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.id}.amazonaws.com/rstudio:rstudio-server-rc1"
       essential = true
 
-      secrets = [
+      environment = [
         { name = "ADMIN_SECRET", valueFrom = "admin_ad_credentials" },
         { name = "DOMAIN_FQDN", valueFrom = var.dns_zone },
         { name = "REGION", valueFrom = data.aws_region.current.id }
