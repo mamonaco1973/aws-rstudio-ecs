@@ -20,6 +20,12 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+# Add SSM read access for secrets/parameters
+resource "aws_iam_role_policy_attachment" "ecs_task_ssm_readonly" {
+  role       = aws_iam_role.ecs_task_execution.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess"
+}
+
 resource "aws_iam_role" "ecs_task_runtime" {
   name = "ecsTaskRuntimeRole-rstudio"
   assume_role_policy = jsonencode({
