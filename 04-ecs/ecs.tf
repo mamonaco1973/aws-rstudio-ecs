@@ -34,7 +34,8 @@ resource "aws_autoscaling_group" "ecs_asg" {
   desired_capacity    = 2
   max_size            = 4
   min_size            = 2
-  vpc_zone_identifier = data.aws_subnets.private.ids
+  vpc_zone_identifier =  [data.aws_subnet.ecs-private-subnet-1, 
+                          data.aws_subnet.ecs-private-subnet-2]
 
   launch_template {
     id      = aws_launch_template.ecs_lt.id
@@ -80,7 +81,7 @@ resource "aws_ecs_task_definition" "rstudio_task" {
   container_definitions = jsonencode([
     {
       name      = "rstudio"
-      image     = "${aws_caller_identity.current}.dkr.ecr.${aws_region.current.name}.amazonaws.com/rstudio:rstudio-server-rc1"
+      image     = "${aws_caller_identity.current.account_id}.dkr.ecr.${aws_region.current.name}.amazonaws.com/rstudio:rstudio-server-rc1"
       essential = true
 
       secrets = [
