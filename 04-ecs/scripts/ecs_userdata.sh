@@ -5,7 +5,7 @@ set -ex
 mkdir -p /etc/ecs
 
 # Register this instance with the ECS cluster
-echo "ECS_CLUSTER={cluster_name}" > /etc/ecs/ecs.config
+echo "ECS_CLUSTER=${cluster_name}" > /etc/ecs/ecs.config
 
 # Optional: enable logging for easier troubleshooting
 echo "ECS_ENABLE_CONTAINER_METADATA=true" >> /etc/ecs/ecs.config
