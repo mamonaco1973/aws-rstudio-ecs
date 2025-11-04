@@ -5,5 +5,3 @@ ECS_ENABLE_CONTAINER_METADATA=true
 ECS_AWSVPC_BLOCK_IMDSV1=true
 EOF
 
-systemctl enable ecs.service
-systemctl start ecs.service
