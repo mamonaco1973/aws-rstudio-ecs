@@ -34,8 +34,8 @@ resource "aws_autoscaling_group" "ecs_asg" {
   desired_capacity    = 2
   max_size            = 4
   min_size            = 2
-  vpc_zone_identifier =  [data.aws_subnet.ecs-private-subnet-1, 
-                          data.aws_subnet.ecs-private-subnet-2]
+  vpc_zone_identifier =  [data.aws_subnet.ecs-private-subnet-1.id, 
+                          data.aws_subnet.ecs-private-subnet-2.id]
 
   launch_template {
     id      = aws_launch_template.ecs_lt.id
@@ -130,8 +130,8 @@ resource "aws_ecs_service" "rstudio_service" {
   launch_type     = "EC2"
 
   network_configuration {
-    subnets          =  [data.aws_subnet.ecs-private-subnet-1, 
-                         data.aws_subnet.ecs-private-subnet-2]
+    subnets          =  [data.aws_subnet.ecs-private-subnet-1.id, 
+                         data.aws_subnet.ecs-private-subnet-2.id]
     assign_public_ip = false
     security_groups  = [aws_security_group.ecs_service.id]
   }
