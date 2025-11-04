@@ -133,9 +133,9 @@ resource "aws_ecs_task_definition" "rstudio_task" {
       essential = true
 
       environment = [
-        { name = "ADMIN_SECRET", valueFrom = "admin_ad_credentials" },
-        { name = "DOMAIN_FQDN", valueFrom = var.dns_zone },
-        { name = "REGION", valueFrom = data.aws_region.current.id }
+        { name = "ADMIN_SECRET", value = "admin_ad_credentials" },
+        { name = "DOMAIN_FQDN", value = var.dns_zone },
+        { name = "REGION", value = data.aws_region.current.id }
       ]
 
       portMappings = [

@@ -32,7 +32,7 @@ resource "aws_security_group" "ecs_service" {
     from_port       = 8787
     to_port         = 8787
     protocol        = "tcp"
-    security_groups = [aws_security_group.ecs_nodes.id]
+    cidr_blocks     = ["0.0.0.0/0"]
   }
 
   egress {
