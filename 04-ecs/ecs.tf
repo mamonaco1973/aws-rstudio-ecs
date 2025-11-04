@@ -81,13 +81,13 @@ resource "aws_ecs_task_definition" "rstudio_task" {
   container_definitions = jsonencode([
     {
       name      = "rstudio"
-      image     = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/rstudio:rstudio-server-rc1"
+      image     = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.id}.amazonaws.com/rstudio:rstudio-server-rc1"
       essential = true
 
       secrets = [
         { name = "ADMIN_SECRET", valueFrom = "admin_ad_credentials" },
         { name = "DOMAIN_FQDN", valueFrom = var.dns_zone },
-        { name = "REGION", valueFrom = aws_region.current.name }
+        { name = "REGION", valueFrom = data.aws_region.current.id }
       ]
 
       portMappings = [
