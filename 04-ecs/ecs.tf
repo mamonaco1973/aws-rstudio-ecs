@@ -65,20 +65,51 @@ resource "aws_autoscaling_group" "ecs_asg" {
   protect_from_scale_in = true
 }
 
-# Capacity Provider
+# ==============================================================================
+# ECS Capacity Provider (1 Task per Node)
+# ------------------------------------------------------------------------------
+# Links the ECS cluster to the Auto Scaling Group and enables ECS-managed scaling.
+# Combined with the "distinctInstance" placement constraint in the ECS Service,
+# this configuration ensures each task runs on its own EC2 node.
+# ==============================================================================
+
 resource "aws_ecs_capacity_provider" "rstudio_cp" {
   name = "rstudio-capacity-provider"
 
   auto_scaling_group_provider {
     auto_scaling_group_arn         = aws_autoscaling_group.ecs_asg.arn
     managed_termination_protection = "ENABLED"
+
+    # Enable ECS to automatically scale the ASG up/down based on task demand
+    managed_scaling {
+      status                    = "ENABLED"
+      target_capacity           = 100               # ECS keeps ASG at full capacity
+      minimum_scaling_step_size = 1                 # Scale by one instance at a time
+      maximum_scaling_step_size = 1
+      instance_warmup_period    = 60                # Seconds before instance counted as ready
+    }
   }
-  
+
+  tags = {
+    Name = "rstudio-capacity-provider"
+  }
 }
+
+# ==============================================================================
+# ECS Cluster Capacity Provider Association
+# ------------------------------------------------------------------------------
+# Associates the ECS Capacity Provider with the RStudio ECS Cluster and makes it
+# the default capacity provider for all services and tasks.
+# ==============================================================================
 
 resource "aws_ecs_cluster_capacity_providers" "rstudio_assoc" {
   cluster_name       = aws_ecs_cluster.rstudio_cluster.name
   capacity_providers = [aws_ecs_capacity_provider.rstudio_cp.name]
+
+  default_capacity_provider_strategy {
+    capacity_provider = aws_ecs_capacity_provider.rstudio_cp.name
+    weight            = 1
+  }
 }
 
 # ==============================================================================
@@ -89,7 +120,7 @@ resource "aws_ecs_task_definition" "rstudio_task" {
   network_mode             = "awsvpc"
   requires_compatibilities = ["EC2"]
   cpu                      = "512"
-  memory                   = "1024"
+  memory                   = ""
 
   execution_role_arn = aws_iam_role.ecs_task_execution.arn
   task_role_arn      = aws_iam_role.ecs_task_runtime.arn
