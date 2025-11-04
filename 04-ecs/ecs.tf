@@ -201,3 +201,15 @@ resource "aws_ecs_service" "rstudio_service" {
 
   depends_on = [aws_lb_listener.rstudio_listener]
 }
+
+# ==============================================================================
+# CloudWatch Log Group for ECS RStudio Task
+# ------------------------------------------------------------------------------
+resource "aws_cloudwatch_log_group" "rstudio" {
+  name              = "/ecs/rstudio"
+  retention_in_days = 7
+  tags = {
+    Name        = "rstudio-log-group"
+    Environment = "dev"
+  }
+}
