@@ -20,7 +20,7 @@ data "aws_vpc" "ecs-vpc" {
 # used for associating resources like EC2 instances or load balancers with
 # specific subnets.
 # ==============================================================================
-data "aws_subnet" "k8s-subnet-1" {
+data "aws_subnet" "ecs-subnet-1" {
   # FILTER: Select subnet by tag
   filter {
     name   = "tag:Name"       # Filter by the "Name" tag
@@ -34,7 +34,7 @@ data "aws_subnet" "k8s-subnet-1" {
 # Retrieves details for the second public subnet using its "Name" tag. Useful
 # for multi-AZ or high-availability deployments requiring multiple subnets.
 # ==============================================================================
-data "aws_subnet" "k8s-subnet-2" {
+data "aws_subnet" "ecs-subnet-2" {
   # FILTER: Select subnet by tag
   filter {
     name   = "tag:Name"       # Filter by the "Name" tag
@@ -48,7 +48,7 @@ data "aws_subnet" "k8s-subnet-2" {
 # Retrieves information about the first private subnet using its "Name" tag.
 # Enables referencing private subnets dynamically without hardcoding IDs.
 # ==============================================================================
-data "aws_subnet" "k8s-private-subnet-1" {
+data "aws_subnet" "ecs-private-subnet-1" {
   # FILTER: Select subnet by tag
   filter {
     name   = "tag:Name"        # Filter by the "Name" tag
@@ -62,7 +62,7 @@ data "aws_subnet" "k8s-private-subnet-1" {
 # Retrieves information about the second private subnet using its "Name" tag.
 # Supports multi-AZ or HA deployments spanning private subnets.
 # ==============================================================================
-data "aws_subnet" "k8s-private-subnet-2" {
+data "aws_subnet" "ecs-private-subnet-2" {
   # FILTER: Select subnet by tag
   filter {
     name   = "tag:Name"        # Filter by the "Name" tag

@@ -42,3 +42,23 @@ resource "aws_security_group" "ecs_service" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
+
+resource "aws_security_group" "alb_service" {
+  name        = "alb-service-sg"
+  description = "ALB Service Security Group"
+  vpc_id      = data.aws_vpc.ecs-vpc.id
+
+  ingress {
+    description     = "Allow HTTP access"
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}

@@ -4,8 +4,9 @@
 resource "aws_lb" "rstudio_alb" {
   name               = "rstudio-alb"
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.ecs_service.id]
-  subnets            = data.aws_subnets.private.ids
+  security_groups    = [aws_security_group.alb_service.id]
+  subnets            = [data.aws_subnet.ecs-private-subnet-1, 
+                        data.aws_subnet.ecs-private-subnet-2]
 }
 
 resource "aws_lb_target_group" "rstudio_tg" {
