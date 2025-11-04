@@ -130,7 +130,8 @@ resource "aws_ecs_service" "rstudio_service" {
   launch_type     = "EC2"
 
   network_configuration {
-    subnets          = data.aws_subnets.private.ids
+    subnets          =  [data.aws_subnet.ecs-private-subnet-1, 
+                         data.aws_subnet.ecs-private-subnet-2]
     assign_public_ip = false
     security_groups  = [aws_security_group.ecs_service.id]
   }
