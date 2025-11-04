@@ -65,6 +65,7 @@ resource "aws_iam_role_policy_attachment" "ssm_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
+
 resource "aws_iam_instance_profile" "ecs_instance_profile" {
   name = "ecsInstanceProfile-rstudio"
   role = aws_iam_role.ecs_instance.name
@@ -89,4 +90,10 @@ resource "aws_iam_policy" "rstudio_task_secrets" {
 resource "aws_iam_role_policy_attachment" "rstudio_task_secrets_attach" {
   role       = aws_iam_role.ecs_task_runtime.name
   policy_arn = aws_iam_policy.rstudio_task_secrets.arn
+}
+
+# Allow ECS Tasks to Create and Write to CloudWatch Logs
+resource "aws_iam_role_policy_attachment" "ecs_task_cloudwatch_logs" {
+  role       = aws_iam_role.ecs_task_execution.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
 }
