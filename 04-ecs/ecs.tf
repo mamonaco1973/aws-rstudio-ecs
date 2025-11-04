@@ -80,7 +80,7 @@ resource "aws_ecs_task_definition" "rstudio_task" {
   container_definitions = jsonencode([
     {
       name      = "rstudio"
-      image     = "${aws_caller_identity.current.account_id}.dkr.ecr.${aws_region.current.name}.amazonaws.com/rstudio:rstudio-server-rc1"
+      image     = "${aws_caller_identity.current}.dkr.ecr.${aws_region.current.name}.amazonaws.com/rstudio:rstudio-server-rc1"
       essential = true
 
       secrets = [

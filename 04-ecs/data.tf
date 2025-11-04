@@ -78,3 +78,14 @@ data "aws_efs_file_system" "efs" {
     Name = "mcloud-efs"
   }
 }
+
+# ==============================================================================
+# Lookup the latest Amazon ECS-Optimized AMI for Amazon Linux 2
+# ------------------------------------------------------------------------------
+# This uses AWS Systems Manager (SSM) Parameter Store to dynamically fetch
+# the latest ECS-optimized AMI ID for your region.
+# ==============================================================================
+
+data "aws_ssm_parameter" "ecs_ami" {
+  name = "/aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id"
+}
