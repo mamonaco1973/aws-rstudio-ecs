@@ -2,7 +2,7 @@
 # ECS Cluster (EC2 Launch Type)
 # ------------------------------------------------------------------------------
 resource "aws_ecs_cluster" "rstudio_cluster" {
-  name = "rstudio-ec2-cluster"
+  name = "rstudio"
 
   setting {
     name  = "containerInsights"
@@ -14,7 +14,7 @@ resource "aws_ecs_cluster" "rstudio_cluster" {
 # ECS Node Auto Scaling Group
 # ------------------------------------------------------------------------------
 resource "aws_launch_template" "ecs_lt" {
-  name_prefix   = "rstudio-ecs-lt-"
+  name          = "rstudio-ecs-lt"
   image_id      = data.aws_ssm_parameter.ecs_ami.value
   instance_type = "t3.medium"
 
@@ -27,10 +27,17 @@ resource "aws_launch_template" "ecs_lt" {
   user_data = base64encode(templatefile("${path.module}/scripts/ecs_userdata.sh", {
     cluster_name = aws_ecs_cluster.rstudio_cluster.name
   }))
+
+   tags = {
+      Name               = "rstudio-ecs-node"
+      Cluster            = aws_ecs_cluster.rstudio_cluster.name
+      AutoScalingGroup   = aws_autoscaling_group.ecs_asg.name
+      Environment        = "dev"
+    }
 }
 
 resource "aws_autoscaling_group" "ecs_asg" {
-  name_prefix         = "rstudio-ecs-asg-"
+  name                = "rstudio-ecs-asg"
   desired_capacity    = 2
   max_size            = 4
   min_size            = 2
