@@ -69,3 +69,12 @@ data "aws_subnet" "k8s-private-subnet-2" {
     values = ["priv-subnet-2"] # Match the private subnet tag
   }
 }
+
+# ------------------------------------------------------------------------------ 
+# DATA SOURCE: Existing EFS File System (lookup by tag)
+# ------------------------------------------------------------------------------
+data "aws_efs_file_system" "efs" {
+  tags = {
+    Name = "mcloud-efs"
+  }
+}

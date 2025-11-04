@@ -31,11 +31,12 @@ log() {
 # ------------------------------------------------------------------------------
 
 log INFO "Starting RStudio Server container initialization..."
-log INFO "Reading K8S secret values..."
+hostname=$(hostname)
+log INFO "Container hostname: ${hostname}"
 
-admin_secret=$(cat /etc/rstudio-config/admin_secret)
-domain_fqdn=$(cat /etc/rstudio-config/domain_fqdn)
-region=$(cat /etc/rstudio-config/region)    
+admin_secret="${ADMIN_SECRET}"
+domain_fqdn="${DOMAIN_FQDN}"
+region="${REGION}"
 export AWS_DEFAULT_REGION="${region}"
 
 # ------------------------------------------------------------------------------
