@@ -88,8 +88,8 @@ resource "aws_ecs_task_definition" "rstudio_task" {
   family                   = "rstudio-task"
   network_mode             = "awsvpc"
   requires_compatibilities = ["EC2"]
-  cpu                      = "1024"
-  memory                   = "2048"
+  cpu                      = "512"
+  memory                   = "1024"
 
   execution_role_arn = aws_iam_role.ecs_task_execution.arn
   task_role_arn      = aws_iam_role.ecs_task_runtime.arn
@@ -114,6 +114,15 @@ resource "aws_ecs_task_definition" "rstudio_task" {
         { sourceVolume = "efs-root", containerPath = "/efs" },
         { sourceVolume = "efs-home", containerPath = "/home" }
       ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = "/ecs/rstudio"
+          "awslogs-region"        = data.aws_region.current.id
+          "awslogs-stream-prefix" = "rstudio"
+        }
+      }
     }
   ])
 
