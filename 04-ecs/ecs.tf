@@ -47,6 +47,8 @@ resource "aws_autoscaling_group" "ecs_asg" {
     value               = "true"
     propagate_at_launch = true
   }
+
+  protect_from_scale_in = true
 }
 
 # Capacity Provider
@@ -57,6 +59,7 @@ resource "aws_ecs_capacity_provider" "rstudio_cp" {
     auto_scaling_group_arn         = aws_autoscaling_group.ecs_asg.arn
     managed_termination_protection = "ENABLED"
   }
+  
 }
 
 resource "aws_ecs_cluster_capacity_providers" "rstudio_assoc" {
