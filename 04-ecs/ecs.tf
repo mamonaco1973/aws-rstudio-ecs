@@ -31,7 +31,6 @@ resource "aws_launch_template" "ecs_lt" {
    tags = {
       Name               = "rstudio-ecs-node"
       Cluster            = aws_ecs_cluster.rstudio_cluster.name
-      AutoScalingGroup   = aws_autoscaling_group.ecs_asg.name
       Environment        = "dev"
     }
 }
