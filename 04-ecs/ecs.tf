@@ -94,7 +94,7 @@ resource "aws_ecs_task_definition" "rstudio_task" {
       ]
 
       portMappings = [
-        { containerPort = 8787, hostPort = 0 }
+        { containerPort = 8787, hostPort = 8787, protocol = "tcp" }
       ]
       mountPoints = [
         { sourceVolume = "efs-root", containerPath = "/efs" },
