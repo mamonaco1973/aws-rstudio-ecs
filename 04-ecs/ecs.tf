@@ -185,6 +185,7 @@ resource "aws_ecs_service" "rstudio_service" {
   task_definition = aws_ecs_task_definition.rstudio_task.arn
   desired_count   = 2
   launch_type     = "EC2"
+  enable_execute_command = true
 
   network_configuration {
     subnets          =  [data.aws_subnet.ecs-private-subnet-1.id, 
