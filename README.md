@@ -1,27 +1,24 @@
-# AWS RStudio Cluster on EKS with Active Directory and EFS Integration
+# AWS RStudio Cluster on ECS with Active Directory and EFS Integration
 
-This project builds on both the **AWS Mini Active Directory** and **RStudio on AWS** labs to deliver a **cloud-native, domain-joined RStudio Server cluster** running on **Amazon Elastic Kubernetes Service (EKS)**.  
+This project builds on both the **AWS Mini Active Directory** and **RStudio on AWS** labs to deliver a **cloud-native, domain-joined RStudio Server cluster** running on **Amazon Elastic Container Service (ECS)**.  
 
-It uses **Terraform**, **Docker**, and **Kubernetes manifests** to create a fully automated, scalable analytics environment that integrates with **Active Directory authentication** and **Amazon Elastic File System (EFS)** for persistent, shared storage.
+It uses **Terraform**, **Docker**, and **ECS task definitions** to create a fully automated, scalable analytics environment that integrates with **Active Directory authentication** and **Amazon Elastic File System (EFS)** for persistent, shared storage.
 
-![RStudio K8S Architecture](rstudio.png)
+![RStudio ECS Architecture](rstudio.png)
 
-Unlike VM-based Auto Scaling Groups, this solution deploys **containerized RStudio Server pods** on EKS that dynamically join the domain and mount **EFS volumes** for user home directories and shared R libraries.  
-
-
-![RStudio K8S Architecture](k8s-diagram.png)
+Unlike VM-based Auto Scaling Groups, this solution deploys **containerized RStudio Server tasks** on ECS that dynamically join the domain and mount **EFS volumes** for user home directories and shared R libraries.  
 
 Key capabilities demonstrated:
 
-1. **EKS-Hosted RStudio Cluster** – RStudio Server (Open Source Edition) runs as containers on an Amazon EKS cluster for elasticity, resilience, and maintainability.  
-2. **Active Directory Authentication** – Domain-joined pods authenticate through a Samba-based AD, providing centralized user management.  
-3. **EFS-Backed Persistent Storage** – User home directories and shared R package libraries are stored on EFS, ensuring cross-pod consistency and reproducible environments.  
-4. **Application Load Balancer (ALB) Ingress** – Provides external HTTPS access with sticky sessions, TLS termination, and DNS integration.  
-5. **End-to-End IaC Workflow** – Terraform, Docker, and Helm combine to deliver a modular, reproducible deployment pipeline.
+1. **ECS-Hosted RStudio Cluster** – RStudio Server (Open Source Edition) runs as containers on an Amazon ECS cluster for elasticity, resilience, and maintainability.  
+2. **Active Directory Authentication** – Domain-joined containers authenticate through a Samba-based AD, providing centralized user management.  
+3. **EFS-Backed Persistent Storage** – User home directories and shared R package libraries are stored on EFS, ensuring cross-task consistency and reproducible environments.  
+4. **Application Load Balancer (ALB) Integration** – Provides external HTTPS access with sticky sessions, TLS termination, and DNS integration.  
+5. **End-to-End IaC Workflow** – Terraform and Docker combine to deliver a modular, reproducible deployment pipeline.
 
-Together, these components form a scalable, domain-aware analytics platform where RStudio users share packages, data, and authentication seamlessly across a fully managed Kubernetes environment.
+Together, these components form a scalable, domain-aware analytics platform where RStudio users share packages, data, and authentication seamlessly across a fully managed ECS environment.
 
-![AWS Diagam](aws-rstudio-eks.png)
+![AWS Diagram](aws-rstudio-ecs.png)
 
 ## Prerequisites
 
@@ -29,7 +26,6 @@ Together, these components form a scalable, domain-aware analytics platform wher
 * [Install AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) 
 * [Install Latest Terraform](https://developer.hashicorp.com/terraform/install)
 * [Install Docker](https://docs.docker.com/engine/install/)
-* [Install kubectl](https://kubernetes.io/docs/tasks/tools/)
 
 If this is your first time watching our content, we recommend starting with this video: [AWS + Terraform: Easy Setup](https://youtu.be/BCMQo0CB9wk). It provides a step-by-step guide to properly configure Terraform and the AWS CLI.
 
@@ -37,8 +33,8 @@ If this is your first time watching our content, we recommend starting with this
 ## Download this Repository
 
 ```bash
-git clone https://github.com/mamonaco1973/aws-rstudio-eks.git
-cd aws-rstudio-eks
+git clone https://github.com/mamonaco1973/aws-rstudio-ecs.git
+cd aws-rstudio-ecs
 ```
 
 ## Build the Code
@@ -46,7 +42,7 @@ cd aws-rstudio-eks
 Run [check_env](check_env.sh) to validate your environment, then run [apply](apply.sh) to provision the infrastructure.
 
 ```bash
-~/aws-rstudio-eks$ ./apply.sh
+~/aws-rstudio-ecs$ ./apply.sh
 NOTE: Running environment validation...
 NOTE: Validating that required commands are found in your PATH.
 NOTE: aws is found in the current PATH.
@@ -59,7 +55,6 @@ NOTE: Successfully logged into AWS.
 NOTE: Building Active Directory instance...
 Initializing the backend...
 ```
-
 ### Build Results
 
 When the deployment completes, the following resources are created:
@@ -71,35 +66,43 @@ When the deployment completes, the following resources are created:
   - DNS resolution provided by the Active Directory domain controller  
 
 - **Security & IAM:**  
-  - Security groups for the EKS cluster, ALB ingress, EFS mount targets, and AD servers  
-  - IAM roles for service accounts (IRSA) allowing pods to mount EFS volumes and access Secrets Manager  
+  - Security groups for ECS container instances, ALB ingress, EFS mount targets, and AD servers  
+  - IAM roles for ECS tasks and instances allowing access to EFS and Secrets Manager  
   - Secrets stored in AWS Secrets Manager for AD administrator and RStudio configuration credentials  
 
 - **Active Directory Domain:**  
   - Deployed via AWS Directory Service or a custom Samba-based “Mini-AD” controller  
-  - Provides centralized user authentication and DNS services for the cluster  
-  - Integrated with the RStudio pods through SSSD for domain-based logins  
+  - Provides centralized user authentication and DNS services for the ECS cluster  
+  - Integrated with RStudio containers through SSSD for domain-based logins  
 
 - **Amazon EFS:**  
   - Elastic File System provisioned with mount targets in each private subnet  
-  - Security group allowing NFS traffic (TCP/2049) from EKS worker nodes  
+  - Security group allowing NFS traffic (TCP/2049) from ECS container instances  
   - Used as a persistent backend for both user home directories and shared R package libraries  
 
-- **EKS Cluster & Node Groups:**  
-  - Amazon EKS cluster deployed via Terraform, with managed node groups across Availability Zones  
-  - Nodes configured with IAM permissions for EFS CSI driver, ALB ingress, and Secrets Manager  
-  - Auto Scaling enabled for dynamic pod scheduling and workload elasticity  
+- **ECS Cluster & Auto Scaling Group:**  
+  - Amazon ECS cluster deployed via Terraform using the EC2 launch type for container hosting  
+  - EC2 instances managed by an Auto Scaling Group configured with IAM roles for EFS and Secrets Manager access  
+  - Cluster capacity managed dynamically through an ECS capacity provider linked to the ASG  
+
+- **Application Load Balancer (ALB):**  
+  - ALB provides HTTPS access to RStudio Server tasks with sticky sessions
+  - Integrated with ECS service for automatic target registration and health monitoring  
 
 - **RStudio Application:**  
-  - RStudio Server (Open Source Edition) deployed as a Kubernetes Deployment and Service  
-  - ALB Ingress Controller provides external access with TLS termination and sticky sessions  
-  - Pods automatically join the AD domain at startup and mount EFS-backed volumes for persistence  
-  - Delivers high availability, reproducibility, and domain-based multi-user access  
+  - RStudio Server (Open Source Edition) deployed as an ECS Service with one or more tasks  
+  - Each task dynamically joins the Active Directory domain on startup and mounts EFS-backed volumes  
+  - Provides high availability, reproducibility, and centralized multi-user authentication  
 
 - **Automation & Validation:**  
-  - Terraform modules handle dependency ordering across networking, AD, EKS, and application layers  
-  - `apply.sh`, `destroy.sh`, and `validate.sh` scripts automate provisioning and teardown  
-  - Validation confirms EKS health, ALB routing, EFS mounts, and AD-based authentication for RStudio users
+  - Terraform modules handle dependency ordering across networking, AD, ECS, and application layers  
+  - `apply.sh`, `destroy.sh`, and `validate.sh` scripts automate provisioning, teardown, and endpoint checks  
+  - Validation confirms ECS service health, ALB routing, EFS mounts, and AD-based authentication for RStudio users  
+
+### Users and Groups
+
+As part of this project, when the domain controller is provisioned, a set of sample **users** and **groups** are automatically created through Terraform-provisioned scripts running on the Mini-AD server.  
+These resources are intended for **testing and demonstration purposes**, showcasing how to automate user and group provisioning in a self-managed Active Directory environment.
 
 ### Users and Groups
 
