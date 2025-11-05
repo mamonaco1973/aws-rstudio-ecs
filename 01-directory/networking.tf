@@ -52,7 +52,7 @@ resource "aws_internet_gateway" "ecs-igw" {
 resource "aws_subnet" "priv-subnet-1" {
   vpc_id                  = aws_vpc.ecs-vpc.id
   cidr_block              = "10.0.0.64/26"
-  map_public_ip_on_launch = true # Still assigns public IPs, but route table = NAT
+  map_public_ip_on_launch = false
   availability_zone_id    = "use1-az6"
 
   tags = { Name = "priv-subnet-1" }
@@ -61,7 +61,7 @@ resource "aws_subnet" "priv-subnet-1" {
 resource "aws_subnet" "priv-subnet-2" {
   vpc_id                  = aws_vpc.ecs-vpc.id
   cidr_block              = "10.0.0.128/26"
-  map_public_ip_on_launch = true # Still assigns public IPs, but route table = NAT
+  map_public_ip_on_launch = false
   availability_zone_id    = "use1-az4"
 
   tags = { Name = "priv-subnet-2" }
