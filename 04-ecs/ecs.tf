@@ -261,3 +261,52 @@ resource "aws_cloudwatch_log_group" "rstudio" {
     Environment = "dev"
   }
 }
+
+# ================================================================================================
+# ECS Service Auto Scaling (Scale-Out Only)
+# ================================================================================================
+# Automatically increases the number of ECS tasks when average CPU utilization
+# exceeds 60%. Scale-in behavior is disabled to ensure that RStudio workloads
+# remain stable and do not terminate under transient load drops.
+#
+# This works in combination with the ECS Capacity Provider and the EC2 Auto
+# Scaling Group (ASG). When new tasks exceed current node capacity, the ASG
+# automatically provisions new instances to host them.
+# ================================================================================================
+
+# -----------------------------------------------------------------------------------------------
+# Application Auto Scaling Target
+# -----------------------------------------------------------------------------------------------
+# Registers the ECS Service as a scalable target in Application Auto Scaling.
+# Sets allowable bounds for desired task count (2 minimum, 6 maximum).
+# -----------------------------------------------------------------------------------------------
+resource "aws_appautoscaling_target" "rstudio_service_scaling_target" {
+  service_namespace  = "ecs"
+  resource_id        = "service/${aws_ecs_cluster.rstudio_cluster.name}/${aws_ecs_service.rstudio_service.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  min_capacity       = 2
+  max_capacity       = 6
+}
+
+# -----------------------------------------------------------------------------------------------
+# Application Auto Scaling Policy
+# -----------------------------------------------------------------------------------------------
+# Defines a target-tracking policy based on average ECS CPU utilization.
+# Only scale-out events are permitted; scale-in is explicitly disabled.
+# -----------------------------------------------------------------------------------------------
+resource "aws_appautoscaling_policy" "rstudio_service_scaling_policy" {
+  name               = "rstudio-service-scaleout"
+  service_namespace  = "ecs"
+  resource_id        = aws_appautoscaling_target.rstudio_service_scaling_target.resource_id
+  scalable_dimension = aws_appautoscaling_target.rstudio_service_scaling_target.scalable_dimension
+  policy_type        = "TargetTrackingScaling"
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+    }
+    target_value       = 60.0              # Trigger threshold for scale-out
+    disable_scale_in   = true              # Prevent task reduction
+    scale_out_cooldown = 120               # Seconds to wait before next scale-out
+  }
+}
