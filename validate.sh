@@ -53,3 +53,16 @@ else
   echo "NOTE: EFS Gateway Instance FQDN:   $(echo $linux_dns | xargs)"
 fi
 
+# --------------------------------------------------------------------------------------------------
+# Lookup ALB DNS Name
+# --------------------------------------------------------------------------------------------------
+alb_dns=$(aws elbv2 describe-load-balancers \
+  --names rstudio-alb \
+  --query 'LoadBalancers[0].DNSName' \
+  --output text)
+
+if [ -z "$alb_dns" ]; then
+  echo "WARNING: No ALB found with name rstudio-alb"
+else
+  echo "NOTE: RStudio ALB Endpoint:        http://$alb_dns"
+fi
