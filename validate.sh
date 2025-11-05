@@ -61,8 +61,26 @@ alb_dns=$(aws elbv2 describe-load-balancers \
   --query 'LoadBalancers[0].DNSName' \
   --output text)
 
-if [ -z "$alb_dns" ]; then
-  echo "WARNING: No ALB found with name rstudio-alb"
-else
-  echo "NOTE: RStudio ALB Endpoint:        http://$alb_dns"
-fi
+# ------------------------------------------------------------------------------
+# Wait for HTTP 200 Response from Load Balancer
+# ------------------------------------------------------------------------------
+# Once the hostname is available, continuously poll the endpoint until it
+# returns HTTP 200, indicating RStudio is reachable via the Load Balancer.
+# ------------------------------------------------------------------------------
+
+echo "NOTE: Waiting for Load Balancer endpoint (http://${alb_dns}) to return HTTP 200..."
+
+for ((j=1; j<=MAX_ATTEMPTS; j++)); do
+  STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://${alb_dns}/auth-sign-in")
+
+  if [[ "$STATUS_CODE" == "200" ]]; then
+    echo "NOTE: RStudio ALB Endpoint:        http://$alb_dns"
+    exit 0
+  fi
+
+  echo "WARNING: Attempt $j/${MAX_ATTEMPTS}: Current status: HTTP ${STATUS_CODE} ... retrying in ${SLEEP_SECONDS}s"
+  sleep ${SLEEP_SECONDS}
+done
+
+echo "ERROR: Timed out after ${MAX_ATTEMPTS} attempts waiting for HTTP 200 from Load Balancer."
+exit 1
