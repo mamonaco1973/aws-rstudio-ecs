@@ -68,6 +68,11 @@ admin_username=$(echo "${secretValue}" | jq -r '.username' | sed 's/.*\\//')
 # Join Active Directory Domain
 # ------------------------------------------------------------------------------
 
+# Generate unique 6-character suffix (alphanumeric)
+random_id=$(tr -dc 'a-z0-9' </dev/urandom | head -c 6)
+machine_name="rstudio-${random_id}"
+log INFO "Generated unique machine name: ${machine_name}"
+
 log INFO "Joining Active Directory domain: ${domain_fqdn}..."
 
 # Pipe the admin password into `realm join` for noninteractive authentication.
@@ -78,6 +83,7 @@ log INFO "Joining Active Directory domain: ${domain_fqdn}..."
 if echo -e "${admin_password}" | sudo /usr/sbin/realm join \
     -U "${admin_username}" \
     "${domain_fqdn}" \
+    --computer-name="${machine_name}" \
     --verbose --install=/ ; then
 
   log INFO "Successfully joined domain: ${domain_fqdn}"
