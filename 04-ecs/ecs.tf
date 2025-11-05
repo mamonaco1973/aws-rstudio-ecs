@@ -51,10 +51,10 @@ resource "aws_launch_template" "ecs_lt" {
   tag_specifications {
     resource_type = "instance"
     tags = {
-      Name               = "rstudio-ecs-node"
-      Cluster            = aws_ecs_cluster.rstudio_cluster.name
-      Environment        = "dev"
-      AmazonECSManaged   = "true"
+      Name             = "rstudio-ecs-node"
+      Cluster          = aws_ecs_cluster.rstudio_cluster.name
+      Environment      = "dev"
+      AmazonECSManaged = "true"
     }
   }
 
@@ -70,10 +70,10 @@ resource "aws_launch_template" "ecs_lt" {
 # across multiple subnets.
 # -----------------------------------------------------------------------------------------------
 resource "aws_autoscaling_group" "ecs_asg" {
-  name                = "rstudio-ecs-asg"
-  desired_capacity    = 2
-  max_size            = 4
-  min_size            = 2
+  name             = "rstudio-ecs-asg"
+  desired_capacity = 2
+  max_size         = 4
+  min_size         = 2
 
   # Deploy nodes across private subnets for high availability.
   vpc_zone_identifier = [
@@ -169,8 +169,8 @@ resource "aws_ecs_task_definition" "rstudio_task" {
 
       environment = [
         { name = "ADMIN_SECRET", value = "admin_ad_credentials" },
-        { name = "DOMAIN_FQDN",  value = var.dns_zone },
-        { name = "REGION",       value = data.aws_region.current.id }
+        { name = "DOMAIN_FQDN", value = var.dns_zone },
+        { name = "REGION", value = data.aws_region.current.id }
       ]
 
       portMappings = [
@@ -221,15 +221,15 @@ resource "aws_ecs_task_definition" "rstudio_task" {
 # allows remote debugging via ECS Exec.
 # -----------------------------------------------------------------------------------------------
 resource "aws_ecs_service" "rstudio_service" {
-  name                    = "rstudio-service"
-  cluster                 = aws_ecs_cluster.rstudio_cluster.id
-  task_definition         = aws_ecs_task_definition.rstudio_task.arn
-  desired_count           = 2
-  launch_type             = "EC2"
-  enable_execute_command  = true
+  name                   = "rstudio-service"
+  cluster                = aws_ecs_cluster.rstudio_cluster.id
+  task_definition        = aws_ecs_task_definition.rstudio_task.arn
+  desired_count          = 2
+  launch_type            = "EC2"
+  enable_execute_command = true
 
   network_configuration {
-    subnets          = [
+    subnets = [
       data.aws_subnet.ecs-private-subnet-1.id,
       data.aws_subnet.ecs-private-subnet-2.id
     ]
