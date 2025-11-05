@@ -1,6 +1,18 @@
-# ==============================================================================
+# ================================================================================================
+# ECS Cluster and EC2 Node Infrastructure for RStudio Service
+# ================================================================================================
+# Provisions a complete ECS environment using EC2 launch type to host RStudio
+# Server containers. Includes cluster creation, Auto Scaling Group (ASG) for
+# ECS nodes, capacity provider configuration, task definitions, service setup,
+# and CloudWatch logging.
+# ================================================================================================
+
+# -----------------------------------------------------------------------------------------------
 # ECS Cluster (EC2 Launch Type)
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------------------------
+# Defines the ECS cluster that manages RStudio Server tasks on EC2 instances.
+# Enables Container Insights for performance and log visibility.
+# -----------------------------------------------------------------------------------------------
 resource "aws_ecs_cluster" "rstudio_cluster" {
   name = "rstudio"
 
@@ -10,69 +22,88 @@ resource "aws_ecs_cluster" "rstudio_cluster" {
   }
 }
 
-# ==============================================================================
-# ECS Node Auto Scaling Group
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------------------------
+# ECS Node Launch Template
+# -----------------------------------------------------------------------------------------------
+# Defines the EC2 instance template used by the ECS Auto Scaling Group. Each
+# node joins the ECS cluster automatically using userdata defined in a shell
+# script. Tags ensure proper identification and cost allocation.
+# -----------------------------------------------------------------------------------------------
 resource "aws_launch_template" "ecs_lt" {
   name          = "rstudio-ecs-lt"
   image_id      = data.aws_ssm_parameter.ecs_ami.value
   instance_type = "t3.medium"
 
+  # Attach IAM instance profile with ECS and Secrets Manager permissions.
   iam_instance_profile {
     name = aws_iam_instance_profile.ecs_instance_profile.name
   }
 
+  # Security group allows ECS agent and internal communication.
   vpc_security_group_ids = [aws_security_group.ecs_nodes.id]
 
+  # Bootstrap ECS node to join the specified cluster on startup.
   user_data = base64encode(templatefile("${path.module}/scripts/ecs_userdata.sh", {
     cluster_name = aws_ecs_cluster.rstudio_cluster.name
   }))
 
-  # THIS is what applies tags to the EC2 instances
+  # Apply tags directly to EC2 instances at launch.
   tag_specifications {
     resource_type = "instance"
     tags = {
-      Name        = "rstudio-ecs-node"
-      Cluster     = aws_ecs_cluster.rstudio_cluster.name
-      Environment = "dev"
-      AmazonECSManaged      = "true"  
+      Name               = "rstudio-ecs-node"
+      Cluster            = aws_ecs_cluster.rstudio_cluster.name
+      Environment        = "dev"
+      AmazonECSManaged   = "true"
     }
   }
 
-  # optional: tags on the template object itself
+  # Optional: Tag the launch template object itself.
   tags = { Name = "rstudio-ecs-lt" }
 }
 
+# -----------------------------------------------------------------------------------------------
+# ECS Node Auto Scaling Group
+# -----------------------------------------------------------------------------------------------
+# Creates an Auto Scaling Group (ASG) that maintains the ECS cluster’s EC2
+# instances. Protects instances from scale-in termination and ensures capacity
+# across multiple subnets.
+# -----------------------------------------------------------------------------------------------
 resource "aws_autoscaling_group" "ecs_asg" {
   name                = "rstudio-ecs-asg"
   desired_capacity    = 2
   max_size            = 4
   min_size            = 2
-  vpc_zone_identifier =  [data.aws_subnet.ecs-private-subnet-1.id, 
-                          data.aws_subnet.ecs-private-subnet-2.id]
+
+  # Deploy nodes across private subnets for high availability.
+  vpc_zone_identifier = [
+    data.aws_subnet.ecs-private-subnet-1.id,
+    data.aws_subnet.ecs-private-subnet-2.id
+  ]
 
   launch_template {
     id      = aws_launch_template.ecs_lt.id
     version = "$Latest"
   }
 
+  # Ensure ECS recognizes these instances as managed.
   tag {
     key                 = "AmazonECSManaged"
     value               = "true"
     propagate_at_launch = true
   }
 
+  # Prevent ECS nodes from being terminated during scaling events.
   protect_from_scale_in = true
 }
 
-# ==============================================================================
-# ECS Capacity Provider (1 Task per Node)
-# ------------------------------------------------------------------------------
-# Links the ECS cluster to the Auto Scaling Group and enables ECS-managed scaling.
-# Combined with the "distinctInstance" placement constraint in the ECS Service,
-# this configuration ensures each task runs on its own EC2 node.
-# ==============================================================================
-
+# -----------------------------------------------------------------------------------------------
+# ECS Capacity Provider
+# -----------------------------------------------------------------------------------------------
+# Links the Auto Scaling Group to ECS with managed scaling enabled. Ensures
+# ECS automatically adjusts EC2 instance count based on task demand. Used in
+# combination with a placement constraint to guarantee one task per node.
+# -----------------------------------------------------------------------------------------------
 resource "aws_ecs_capacity_provider" "rstudio_cp" {
   name = "rstudio-capacity-provider"
 
@@ -80,13 +111,13 @@ resource "aws_ecs_capacity_provider" "rstudio_cp" {
     auto_scaling_group_arn         = aws_autoscaling_group.ecs_asg.arn
     managed_termination_protection = "ENABLED"
 
-    # Enable ECS to automatically scale the ASG up/down based on task demand
+    # Enable ECS to automatically manage ASG scaling based on service load.
     managed_scaling {
       status                    = "ENABLED"
-      target_capacity           = 100               # ECS keeps ASG at full capacity
-      minimum_scaling_step_size = 1                 # Scale by one instance at a time
+      target_capacity           = 100
+      minimum_scaling_step_size = 1
       maximum_scaling_step_size = 1
-      instance_warmup_period    = 60                # Seconds before instance counted as ready
+      instance_warmup_period    = 60
     }
   }
 
@@ -95,13 +126,12 @@ resource "aws_ecs_capacity_provider" "rstudio_cp" {
   }
 }
 
-# ==============================================================================
+# -----------------------------------------------------------------------------------------------
 # ECS Cluster Capacity Provider Association
-# ------------------------------------------------------------------------------
-# Associates the ECS Capacity Provider with the RStudio ECS Cluster and makes it
-# the default capacity provider for all services and tasks.
-# ==============================================================================
-
+# -----------------------------------------------------------------------------------------------
+# Associates the ECS Capacity Provider with the ECS cluster and defines it as
+# the default provider strategy for service deployments.
+# -----------------------------------------------------------------------------------------------
 resource "aws_ecs_cluster_capacity_providers" "rstudio_assoc" {
   cluster_name       = aws_ecs_cluster.rstudio_cluster.name
   capacity_providers = [aws_ecs_capacity_provider.rstudio_cp.name]
@@ -112,9 +142,13 @@ resource "aws_ecs_cluster_capacity_providers" "rstudio_assoc" {
   }
 }
 
-# ==============================================================================
+# -----------------------------------------------------------------------------------------------
 # ECS Task Definition (EC2 Launch Type)
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------------------------
+# Describes the RStudio container configuration including CPU/memory, image,
+# environment variables, EFS mounts, and logging. Defines required IAM roles
+# and enables persistent storage.
+# -----------------------------------------------------------------------------------------------
 resource "aws_ecs_task_definition" "rstudio_task" {
   family                   = "rstudio-task"
   network_mode             = "awsvpc"
@@ -122,10 +156,11 @@ resource "aws_ecs_task_definition" "rstudio_task" {
   cpu                      = "512"
   memory                   = "1024"
 
+  # Task execution and runtime roles for ECS agent and application access.
   execution_role_arn = aws_iam_role.ecs_task_execution.arn
   task_role_arn      = aws_iam_role.ecs_task_runtime.arn
 
-
+  # Define container specifications and runtime configuration.
   container_definitions = jsonencode([
     {
       name      = "rstudio"
@@ -134,13 +169,14 @@ resource "aws_ecs_task_definition" "rstudio_task" {
 
       environment = [
         { name = "ADMIN_SECRET", value = "admin_ad_credentials" },
-        { name = "DOMAIN_FQDN", value = var.dns_zone },
-        { name = "REGION", value = data.aws_region.current.id }
+        { name = "DOMAIN_FQDN",  value = var.dns_zone },
+        { name = "REGION",       value = data.aws_region.current.id }
       ]
 
       portMappings = [
         { containerPort = 8787, hostPort = 8787, protocol = "tcp" }
       ]
+
       mountPoints = [
         { sourceVolume = "efs-root", containerPath = "/efs" },
         { sourceVolume = "efs-home", containerPath = "/home" }
@@ -157,6 +193,7 @@ resource "aws_ecs_task_definition" "rstudio_task" {
     }
   ])
 
+  # Define EFS-backed volumes for persistent data and user directories.
   volume {
     name = "efs-root"
     efs_volume_configuration {
@@ -176,24 +213,31 @@ resource "aws_ecs_task_definition" "rstudio_task" {
   }
 }
 
-# ==============================================================================
-# ECS Service (EC2)
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------------------------
+# ECS Service (EC2 Launch Type)
+# -----------------------------------------------------------------------------------------------
+# Deploys the RStudio ECS task as a service that maintains the desired number
+# of containers. Integrates with the ALB for external access via port 8787 and
+# allows remote debugging via ECS Exec.
+# -----------------------------------------------------------------------------------------------
 resource "aws_ecs_service" "rstudio_service" {
-  name            = "rstudio-service"
-  cluster         = aws_ecs_cluster.rstudio_cluster.id
-  task_definition = aws_ecs_task_definition.rstudio_task.arn
-  desired_count   = 2
-  launch_type     = "EC2"
-  enable_execute_command = true
+  name                    = "rstudio-service"
+  cluster                 = aws_ecs_cluster.rstudio_cluster.id
+  task_definition         = aws_ecs_task_definition.rstudio_task.arn
+  desired_count           = 2
+  launch_type             = "EC2"
+  enable_execute_command  = true
 
   network_configuration {
-    subnets          =  [data.aws_subnet.ecs-private-subnet-1.id, 
-                         data.aws_subnet.ecs-private-subnet-2.id]
+    subnets          = [
+      data.aws_subnet.ecs-private-subnet-1.id,
+      data.aws_subnet.ecs-private-subnet-2.id
+    ]
     assign_public_ip = false
     security_groups  = [aws_security_group.ecs_service.id]
   }
 
+  # Attach to ALB target group for HTTP traffic routing.
   load_balancer {
     target_group_arn = aws_lb_target_group.rstudio_tg.arn
     container_name   = "rstudio"
@@ -203,9 +247,12 @@ resource "aws_ecs_service" "rstudio_service" {
   depends_on = [aws_lb_listener.rstudio_listener]
 }
 
-# ==============================================================================
-# CloudWatch Log Group for ECS RStudio Task
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------------------------
+# CloudWatch Log Group for ECS RStudio Tasks
+# -----------------------------------------------------------------------------------------------
+# Creates a CloudWatch log group for ECS container logs, enabling centralized
+# monitoring and troubleshooting. Retains logs for 7 days.
+# -----------------------------------------------------------------------------------------------
 resource "aws_cloudwatch_log_group" "rstudio" {
   name              = "/ecs/rstudio"
   retention_in_days = 7
